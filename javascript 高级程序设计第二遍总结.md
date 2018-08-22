@@ -385,7 +385,7 @@
 
     ```javascript
     /*
-    	concat() 在没有给它传递参数的情况下复制当前数组，并返回副本(深拷贝)
+    	concat() 在没有给它传递参数的情况下复制当前数组，并返回副本(浅拷贝)
     	如果传递的是一个或多个数组，则会把这些数组中的每一项都添加到结果数组中
     	如果传递的不是数组，则这些值会被简单的添加到数组的末尾
     */
@@ -1481,7 +1481,7 @@
     anotherPerson.name = "Greg";
     anotherPerson.friends.push("Rob");
     
-    var yetAnotherPerson = Object.createt(person);
+    var yetAnotherPerson = Object.create(person);
     yetAnotherPerson.name = "Linda";
     yetAnotherPerson.friends.push("Barbie");
     
@@ -1577,7 +1577,7 @@
 
     ```javascript
     // 函数表达式和其他表达式一样，使用前必须先赋值，以下代码会报错
-    sayHi(); // 不会报错
+    sayHi(); // 会报错
     var sayHi = function(){
         alert("Hi!");
     };
@@ -1643,7 +1643,7 @@
       object.getNameFunc()(); // "The Window"
       ```
 
-      前面层提到过，每个函数在被调用的时候都会自动取得两个特殊变量：this 和 arguments。内部函数在搜索这两个变量时，只会搜索到其活动对象为止，因此永远不可能直接访问外部函数中的这两个变量。不过，把外部作用域中的 this 对象保存在一个闭包能够访问到的变量里，就可以让闭包访问该对象了
+      前面曾提到过，每个函数在被调用的时候都会自动取得两个特殊变量：this 和 arguments。内部函数在搜索这两个变量时，只会搜索到其活动对象为止，因此永远不可能直接访问外部函数中的这两个变量。不过，把外部作用域中的 this 对象保存在一个闭包能够访问到的变量里，就可以让闭包访问该对象了
 
       ```javascript
       var name = "The Window";
@@ -1807,7 +1807,7 @@
 
       这个模式创建了一个私有作用域，并在其中封装了一个构造函数及相应的方法。在私有作用域中，首先定义了私有变量和私有函数，然后又定义了构造函数及其公有方法。公有方法实在原型上定义的，这一点体现了典型的原型模式。需要注意的是，这个模式在定义构造函数时并没有使用函数声明，而是使用了函数表达式。函数声明只能创建局部函数。因此，没有在声明 `MyObject` 时使用 `var` 关键字。**初始化未经声明的变量，总是会创建一个全局变量 **。因此，`MyObject` 就成了一个全局变量，能够在私有作用域之外被访问到。但是严格模式下会报错。
 
-      这个模式与在构造函数中定义特权方法的主要区别在于私有变量和函数是由实例共享的。由于特权方法是在原型上定义的，因此所有实例都使用同一个韩式，而这个特权方法，作为一个闭包，总是保存着对包含作用域的引用。
+      这个模式与在构造函数中定义特权方法的主要区别在于私有变量和函数是由实例共享的。由于特权方法是在原型上定义的，因此所有实例都使用同一个函数，而这个特权方法，作为一个闭包，总是保存着对包含作用域的引用。
 
       ```javascript
       (function(){
@@ -2683,6 +2683,165 @@ DOM1 级主要定义的是 HTML 和 XML **文档的底层结构**。DOM2 和 DOM
     ```
 
     一般来说，最好的方法是在页面卸载之前，通过 `onunload` 事件处理程序移除所有事件处理程序。因此，事件委托的优势就出来了。
+
+
+
+##### 第二十一章 Ajax
+
+* XMLHttpRequest 对象
+
+  `var xhr = new XMLhttpRequest();`
+
+  用法：要调用的第一个方法是 `open()`，接收 3 个参数：要发送的请求的类型（get，post 等），请求的 url （url 是相当于执行代码的当前界面，也可使用绝对路径）和是否异步发送请求
+
+  ```javascript
+  var xhr = new XMLhttpRequest();
+  xhr.open("get","example.php",false);
+  // 调用 open 并不会真正发送请求，而只是启动一个请求准备发送，要发送的话需要调用 send();
+  // send 接收一个参数，即作为请求主体发送的数据，如果不发送数据，必须传 null
+  xhr.send(null);
+  ```
+
+  在收到响应后，响应的数据会自动填充 XHR 对象的属性，相关属性如下
+
+  > responseText：作为响应主体被返回的文本
+  >
+  > status：响应的 HTTP 状态
+  >
+  > statusText：HTTP 状态的说明
+
+  为确保接收到适当响应，应当像如下这种方式检查响应状态码
+
+  ```javascript
+  var xhr = new XMLhttpRequest();
+  xhr.open("get","example.txt",false);
+  xhr.send(null);
+  
+  if((xhr.status >= 200 && xhr.status < 300) || xhr == 304){
+      alert(xhr.responseText);
+  } else {
+      alert("Request was unsuccessful" + xhr.status);
+  }
+  ```
+
+  像前面这样发送同步请求当然没有问题，但是多数情况下，我们还是要发送异步请求，才能让 javascript 继续执行而不必等待响应。此时，可以检测 XHR 对象的 readyState 属性，该属性表示请求 / 响应过程的当前活动阶段，这个属性可以取的值如下
+
+  * 0：未初始化，尚未调用 open 方法
+  * 1：启动，已经调用 open 方法尚未调用 send 方法
+  * 2：发送，已经调用 send 方法但尚未收到响应
+  * 3：接收，已经接收到部分响应数据
+  * 4：完成，已经接受到全部响应数据，而且已经可以在客户端使用了
+
+  只要 readyState 属性的值由一个值变成另一个值，都会触发一次 readystatechange 事件。可以利用这个事件来检测每次状态变化后 readyState 的值。通常，我们只对 readyState 值为 4 的阶段感兴趣，因为这时所有的数据都已经就绪，不过，必须在调用 open 之前指定 onreadystatechange 事件处理程序才能确保跨浏览器兼容性
+
+  ```javascript
+  var xhr = new XMLhttpRequest();
+  xhr.onreadystatechange = function(){
+      if(xhr.readyState == 4){
+          if((xhr.status >= 200) && xhr.status < 300 || xhr.status == 304){
+              alert(xhr.responseText);
+          }else{
+              alert("Request was unsuccessful:" + xhr.status);
+          }
+      }
+  };
+  xhr.open("get","example.txt",true);
+  xhr.send(null);
+  ```
+
+  另外，在接收到响应之前可以调用 `abort()` 方法来取消异步请求
+
+  ```javascript
+  xhr.abort();
+  ```
+
+  调用这个方法后， XHR 对象会停止触发事件，而且也不再允许访问任何与响应有关的对象属性。终止请求后，还应该对 XHR 对象进行解引用操作。
+
+  
+
+* HTTP 头部信息
+
+  默认情况下，在发送 xhr 请求的同事I，还会发送下列头部信息。
+
+  * Accept：浏览器能处理的内容类型
+  * Accept-Charset：浏览器能够显示的字符集
+  * Accept-Encoding：浏览器能够处理的压缩编码
+  * Accept-Language：浏览器当前设置的语言
+  * Connection：浏览器与服务器之间的连接的类型
+  * Cookie：当前页面设置的任何 Cookie
+  * Host：发出请求的页面所在的域
+  * Referer：发出请求的页面的 URI
+  * User-Agent：浏览器的用户代理字符串
+
+  使用 `setRequestHeader()` 方法可以设置自定义的请求头部信息。这个方法接受两个参数：头部字段的名称和头部字段的值。要成功发送请求头部信息，必须在调用 open 方法之后且在调用 send 方法之前调用 `setRequestHeader()`
+
+  ```javascript
+  var xhr = new XMLHttpRequest();
+  xhr.onreadystatechange = function(){
+      if(xhr.readyState == 4){
+          if((xhr.status >= 200)&&(xhr.status < 300)||xhr.status == 304){
+              alert(xhr.responseText);
+          }else{
+              alert("Request was unsuccessful:" + xhr.status);
+          }
+      }
+  };
+  xhr.open("get","example.txt",true);
+  xhr.setRequestHeader("Myheader","MyValues");
+  xhr.send(null);
+  ```
+
+  调用 XHR 对象的 `getResponseHeader()` 方法并传入头部字段名称，可以取得相应的响应头部信息。
+
+  而调用 `getAllResponseHeaders()` 方法则可以取得一个包含所有头部信息的长字符串。
+
+  ```javascript
+  var myHeader = xhr.getResponseHeader("MyHeader");
+  var allHeaders = xhr.getAllResponseHeaders();
+  ```
+
+* 请求类型
+
+  * get 请求
+
+  * post 请求
+
+    区别：post 请求应该把数据作为请求的主体提交，post 请求的主体可以包含非常多的数据，而且格式不限
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+
+
+
+
 
 
 
