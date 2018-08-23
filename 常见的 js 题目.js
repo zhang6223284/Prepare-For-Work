@@ -51,11 +51,9 @@ function distinct(arr){
 // 思路 Set 不乱序
 function distinct(arr){
 	var newArr = arr.concat();
-	var set = new Set();
-	newArr.forEach((elem)=>{
-		set.add(elem);
-	})
-	return set
+	var result = new Set(newArr);
+	result = Array.from(result)
+	return result
 }
 
 // 思路 Obj 乱序
