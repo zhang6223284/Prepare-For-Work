@@ -72,7 +72,6 @@
 
   `const foo = Object.freeze({});`
 
-  
 
 ##### 第三章 变量的解构赋值
 
@@ -337,7 +336,7 @@ Promise 对象的特点
 
 * 对象的状态不受外界影响
 
-  > Promise 对象代表一个异步操作，有 3 中状态：Pending（进行中）、Fulfilled（已成功）和 Rejected（已失败）。只有一步操作的结果可以决定当前是哪一种状态，任何其他操作都无法改变这个状态。这也是 Promise 的由来
+  > Promise 对象代表一个异步操作，有 3 中状态：Pending（进行中）、Fulfilled（已成功）和 Rejected（已失败）。只有异步操作的结果可以决定当前是哪一种状态，任何其他操作都无法改变这个状态。这也是 Promise 的由来
 
 * 一旦状态改变就不会再变，任何时候都可以得到这个结果
 
@@ -416,3 +415,317 @@ console.log("Hi!");
 ```
 
 上面的代码中，Promise 新建后会立即执行，所以首先输出的是 Promise。然后，then 方法指定的回调函数将在当前脚本所有同步任务执行完成后才会执行，所以 Resolved 最后输出。
+
+```javascript
+// 异步加载图片
+function loadImageAsync(url){
+    return new Promise((resolve,reject)=>{
+        var image = new Image();
+        image.onload = function(){
+            resolve(image);
+        };
+        image.onerror = function(){
+            reject(new Error('Could not find image at '+image);
+        }
+        img.src = url;
+    });
+}
+// 使用方法
+var loadImg = loadImageAsync('./image.jpg');
+loadImg.then(res=>{
+    var ele = document.querySelector('.main');
+    ele.append(res);
+}).catch(res=>console.log(res))
+```
+
+```javascript
+// 用 promise 对象实现 ajax
+var getJSON = function(url){
+    var promise = new Promise((resolve,reject)=>{
+        var xhr = new XMLHttpRequest();
+        xhr.open('get',url);
+        xhr.onreadystatechange = handler;
+        xhr.responseType = 'JSON';
+        xhr.setRequestHeader('Accept','application/json');
+        xhr.send(null);
+        
+        function handler(){
+            if(this.readyState != 4) return;
+            if(this.status >= 200 && this.status < 300 || this.status === 304){
+                resolve(this.response);
+            }else{
+                reject(new Error(this.statusText));
+            }
+        }
+    });
+    return promise
+}
+
+// 使用方法
+getJSON('./posts.json').then(res=>{
+    console.log(res)
+}).catch(err=>{
+    console.log(err)
+})
+
+```
+
+如果调用 resolve 和 reject 函数时带有参数，那么这些参数会被传递给回调函数。reject 函数的参数通常是 Error 对象的实例，表示抛出的错误；resolve 函数的参数除了正常的值外，还可能是另一个 Promise 实例，比如下面这样
+
+```javascript
+var p1 = new Promise((resolve,reject)=>{
+	setTimeout(()=>reject(new Error('fail')),3000);
+});
+
+var p2 = new Promise((resolve,reject)=>{
+	setTimeout(()=> resolve(p1),1000)
+});
+
+p2.then(res => console.log(res))
+.catch(err => console.log(err))
+// 上述代码，p1 是一个 promise，3 秒之后变为 rejected。p2 的状态在 1 秒之后改变，resolve 方法返回的是 p1.由于 p2 返回的是另一个 promise，导致 p2 的状态无效，由 p1 的状态决定 p2 的状态。所以，后面的 then 语句都是针对后者（p1）的，再过 2 秒，p1 的状态变为 rejected，触发 catch 方法返回指定的回调函数。
+```
+
+此时 p1 的状态就会传递给 p2。也就是说 p1 的状态决定了 p2 的状态
+
+如果 p1 的状态是 Pending，那么 p2 的回调函数就会等待 p1 的状态改变
+
+如果 p1 的状态已经是 Resolved 或 Rejected，那么 p2 的回调函数就会立即执行
+
+**注意**：调用 resolve 或 reject 并不会终结 promise 的参数函数的执行。
+
+这是因为立即 resolved 的 Promise 是在本轮事件循环的末尾执行，总是晚于本轮循环的**同步任务**
+
+```javascript
+new Promise((resolve,reject)=>{
+	resolve(1);
+	console.log(2);
+}).then(r=>console.log(r))
+// 2
+// 1
+```
+
+一般来说，调用 resolve 或 reject 之后，Promise 的使命就完成了，后继操作应该放到 then 方法里面，而不应该直接写在 resolve 或 reject 的后面。所以，最好在它们前面加上 return 语句，这样就不会产生意外。
+
+```javascript
+new Promise((resolve,reject)=>{
+	return resolve(1);
+	console.log(2);// 不会执行
+})
+```
+
+#####14.3 then
+
+Promise 实例具有 then 方法，是定义在 Promise.prototype 上的。它的作用是为 Promise 实例添加状态改变时的回调函数。then 方法的第一个参数是 Resolved 状态的回调函数，第二个参数（可选）是 Rejected 状态的回调函数（自测如果有这个的话，就不会触发 catch 函数了）
+
+then 方法返回的是一个新的 Promise 实例（注意，不是原来那个 Promise 实例）。因此可以采用链式写法，即 then 方法后面再调用另一个 then 方法。
+
+```javascript
+getJSON('./posts.json').then((json)=>json.post)
+    .then((post)=>{
+    // ...
+});
+```
+
+上面的代码使用 then 方法依次指定了两个回调函数，第一个回调函数完成以后，会将返回结果作为参数传入第二个回调函数。
+
+采用链式的 then 可以指定一组按照次序调用的回调函数。这时，前一个回调函数返回的还是一个 promise 对象（即有一步操作）后一个回调函数就会等待该 promise 对象的状态发生变化，再被调用
+
+```javascript
+getJSON('./posts.json').then((post)=>getJSON(post.commentURL))
+    .then(function funcA(comments){
+    console.log('Resolved:',comments);
+},function funcB(err){
+    console.log('Rejected:',err);
+});
+```
+
+上述代码中，第一个 then 方法指定的回调函数返回的是另一个 promise 对象。这时，第二个 then 方法指定的回调函数就会等待这个新的 promise 对象状态发生变化。如果变为 Resolved，就调用 funcA；如果状态变为 Rejected，就调用 funcB
+
+##### 14.4 catch
+
+catch 方法是 `.then(null,rejection)` 的别名，用于指定发生错误时的回调函数。
+
+另外，then 方法指定的回调函数如果在运行中抛出错误也会被 catch 方法捕获
+
+```javascript
+var promise = new Promise((resolve,reject)=>{
+	throw new Error('test');
+});
+promise.then(val=>console.log(val),e=>console.log(e)).catch(e=>console.log(e))
+// 直接被捕获，变成 rejected
+```
+
+需要注意的是，catch 方法返回的还是一个 Promise 对象，因此后面还可以接着调用 then 方法。
+
+##### 14.5 Promise.all()
+
+Promise.all() 方法用于将多个 Promise 实例包装成一个新的 Promise 实例
+
+`var p = Promise.all([p1,p2,p3])`
+
+上述代码中，Promise.all 方法接受一个数组作为参数，p1、p2、p3 都是 Promise 对象的实例；如果不是，就会调用 Promise.resolve 方法，将参数转为 Promise 实例，再进一步处理（Promise.all 方法的参数不一定是数组，但是必须具有 Iterator 接口，且返回的每个成员都是 Promise 实例）。
+
+p 的状态由 p1、p2、p3 决定，分为两种情况
+
+1. 只有 p1，p2，p3 的状态都变成 Fulfilled，p 的状态才会编程 Fulfilled，此时 p1，p2，p3 的返回值组成一个数组，传递给 p 的回调函数。
+2. 只要 p1，p2，p3 中有一个状态变成 Rejected，p 的状态就变成 Rejected，此时第一个被 Rejected 的实例的返回值会传递给 p 的回调函数
+
+下面是一个具体的例子
+
+```javascript
+// 生成一个 Promise 对象的数组
+var promises = [2,3,5,7,11,13].map(id=>getJSON('/post/' + id + '.json'));
+
+Promsie.all(promises).then(posts=>{
+    // ...
+}).catch(err=>{
+    // ...
+})
+```
+
+上面代码中，promises 是包含 6 个 Promise 实例的数组，只有这 6 个实例的状态都编程 fulfilled，或者其中有 1 个变成 rejected，才会调用 Promise.all 方法后面的回调函数。
+
+下面是另一个例子
+
+```javascript
+const databasePromise = connectDatabase();
+
+const booksPromise = databasePromise.then(findAllBooks);
+
+const userPromise = databasePromise.then(getCurrentUser);
+
+Promise.all({
+    booksPromise,
+    userPromise
+})
+.then(([books,user])=>pickTopRecommentations(books,user));
+```
+
+上面的代码中，booksPromise 和 userPromise 是两个异步操作，只有它们的结果都返回，才会触发 pickTopRecommentations 回调函数。
+
+**注意**：如果作为参数的 Promise 实例自身定义了 catch 方法，那么它被 rejected 时并不会触发 Promise.all() 的catch 方法。
+
+这里用自己的例子
+
+```javascript
+	window.onload = function(){
+		var promise1 = loadImageAsync('./微信公众号图片/' + 1 + '.JPG').then(result=>result).catch(e=>e);
+		var promise2 = loadImageAsync('./微信公众号图片/' + 4 + '.JPG').then(result=>result).catch(e=>); // 这里直接被自身的 catch 捕获，变成 resolved，返回一个新的 promise 实例，导致 Promise.all() 方法参数里面两个实例都会 resolved，因此 .all 会正常执行。假设没有 catch 则会被 .all 的 catch 捕捉，.all 变成 rejected 状态，抛出错误。 
+		Promise.all([promise1,promise2]).then(res=>{
+			var div = document.querySelector('.container');
+			res.forEach(ele=>div.append(ele));
+		}).catch(e=>console.log('all:'+e));
+	}
+function loadImageAsync(url){
+	return new Promise((reslove,reject)=>{
+		var image = new Image();
+		image.src = url;
+		image.onload = function(){
+			return reslove(image);
+		}
+		image.onerror = function(){
+			return reject(new Error('Could not load image at' + url));
+		}
+		
+	})
+}
+```
+
+##### 14.6 Promise.race()
+
+Promise.race() 方法同样是将多个 Promise 实例包装成一个新的 Promise 实例
+
+`var promises = Promise.race([p1,p2,p3]);`
+
+上面代码中，只要 p1，p2，p3 中有一个实例**率先改变状态**（可以是出错，也可以是正常执行），p 的状态就跟着改变。那个率先改变的 Promise 实例的返回值就传递给 p 的回调函数。
+
+和 Promise.all 一样，如果不是 Promise 实例，就会先调用下面讲到的 Promise.resolve 方法，将参数转为 Promise 实例，再进一步处理 
+
+来个例子
+
+```javascript
+	window.onload = function(){
+		var promise = loadImageAsync('./微信公众号图片/' + 1 + '.JPG').then(result=>result).catch(e=>e);
+
+		Promise.race([promise,new Promise((resolve,reject)=>{
+			setTimeout(()=>{
+				reject(new Error('timeout'));
+			},1000)
+		}
+			)]).then(res=>{
+			var div = document.querySelector('.container');
+			div.append(res);
+		}).catch(e=>console.log(e))
+    }
+```
+
+这个例子是如果图片 1 秒内加载出来则 promise 的状态就会改变，如果加载不出来第二个 Promise 实例就会执行 reject，被 race 的catch 捕捉。
+
+#####14.7 Promise.resolve()
+
+有时候需要将现有对象转为 Promise 对象，Promise.resolve 方法就起到这个作用。
+
+Promise.resolve 等价于下面的写法
+
+```javascript
+Promise.resolve('foo');
+// 等价于
+new Promise(resolve => resolve('foo'));
+```
+
+Promise.resolve 方法的参数分成以下四种情况
+
+######参数是一个 Promise 实例
+
+如果参数是一个 Promise 实例，那么 Promise.resolve 将不做任何修改，原封不动的返回这个实例
+
+###### 参数是一个 thenable 对象
+
+thenable 对象指的是具有 then 方法的对象，比如下面这个对象
+
+```javascript
+let thenable = {
+    then:function(resolve,reject){
+        resolve(42);
+    }
+};
+```
+
+Promise.resolve 方法会将这个对象转换为 Promise 对象，然后立即执行 thenable 对象的 then 方法
+
+```javascript
+let p1 = Promise.resolve(thenable);
+p1.then(val=>console.log(val)) // 42
+```
+
+上述代码中，thenable 对象的 then 方法执行后，对象 p1 的状态就变为 resolved，从而立即执行最后的 then 方法指定的回调函数，输出 42
+
+###### 参数不是具有 then 方法的对象或根本不是对象
+
+如果参数是一个原始值，或者是一个不具有 then 方法的对象，那么 Promise.resolve 方法返回一个新的 Promise 对象，状态为 Resolved。
+
+```javascript
+var p = Promise.resolve('Hello');
+p.then(s=>console.log(s)); // Hello
+```
+
+###### 不带有任何参数
+
+Promise.resolve 方法允许在调用时不带有任何参数，而直接返回一个 Resolved 状态的 Promise 对象。
+
+所以如果想得到一个 Promise 对象，比较方便的方法就是直接调用 Promise.resolve 方法
+
+```javascript
+var p = Promise.resolve();
+
+p.then(function(){
+    // ...
+})
+```
+
+上面代码中的 p 就是一个 Promise 对象
+
+##### 14.8 Promise.reject()
+
+Promise.reject(reason) 方法也会返回一个新的 Promise 实例，状态位 
