@@ -51,11 +51,9 @@ function distinct(arr){
 // 思路 Set 不乱序
 function distinct(arr){
 	var newArr = arr.concat();
-	var set = new Set();
-	newArr.forEach((elem)=>{
-		set.add(elem);
-	})
-	return set
+	var result = new Set(newArr);
+	result = Array.from(result)
+	return result
 }
 
 // 思路 Obj 乱序
@@ -249,42 +247,3 @@ function debounce(func,wait){
 		},wait)
 	}
 }
-
-// 节流
-function throttle(fn,wait){
-	var timeout;
-	return ()=>{
-		var self = this;
-		var args = arguments;
-		if(!timeout){
-			timeout = setTimeout(()=>{
-				timeout = null;
-				fn.apply(self,args);
-			},wait)
-		} 
-	}
-}
-
-function throttle(fn,wait){
-	var previous = 0;
-	return function(){
-		var content = this;
-		var args = arguments;
-		var now = Date.now();
-		if(now - previous > wait){
-			previous = now;
-			fn.apply(content,args);
-		}
-	}
-}
-
-
-// 数组的扁平化
-
-var A = new Person(name,age,job);
-
-var obj = new Object();
-var res = Person.call(obj, name,age,job);
-res._proto_ = Person.prototype;
-
-return res==null?res:obj
