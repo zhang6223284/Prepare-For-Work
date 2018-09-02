@@ -174,6 +174,22 @@ function fn(data,pid){
 	return result
 }
 
+
+
+function fn(data,pid){
+	var result = [];
+	var temp;
+	data.forEach(ele=>{
+		if(ele.parentId === pid){
+			var obj = {'id':ele.id,'value':ele.value};
+			temp = fn(data, ele.id);
+			if(temp.length>0) obj.children = temp;
+			result.push(obj)
+		}
+	})
+	return result;
+}
+
 // 4 手动实现一个 compose 函数
 //例：
  
@@ -192,37 +208,7 @@ function func3 (ctx, next) {
   console.log(ctx.index);
 }
  
-compose(arr)({index: 0}); 
- 
-// out: 2
- 
-function compose(arr){
-	return function(ctx){
-		const promise = new Promise((resolve,reject)=>{
-			func1(ctx,resolve);
-		});
-		promise.then(()=>{
-			return new Promise((resolve,reject)=>{
-				func2(ctx,resolve)
-			})
-		}).then(()=>{
-			return new Promise((resolve,reject)=>{
-				func3(ctx);
-			})
-		})
-	}
-}
-const compose = (arr) => {
-  return function(ctx) {
-    [...arr].reverse().reduce((func, item) => {
-      return function(ctx) {
-        item(ctx, function() {
-          func(ctx)
-        })
-      }
-    }, ()=>{})(ctx)
-  }
-}
+
 
 function compose(arr){
 	return function(ctx){
@@ -235,3 +221,70 @@ function compose(arr){
 		})(ctx)
 	}
 }
+
+
+
+// out: 2
+const compose = (arr) => {
+  return function(ctx) {
+    [...arr].reverse().reduce((func, item) => {
+      return function(ctx) {
+        item(ctx, function() {
+          func(ctx)
+        })
+      }
+    })(ctx)
+  }
+}
+
+// 防抖
+function debounce(func,wait){
+	var timeout;
+	return ()=>{
+		var self = this;
+		var args = arguments;
+		if(timeout) clearTimeout(timeout);
+		timeout = setTimeout(()=>{
+			func.apply(self,arguments);
+		},wait)
+	}
+}
+
+// 节流
+function throttle(fn,wait){
+	var timeout;
+	return ()=>{
+		var self = this;
+		var args = arguments;
+		if(!timeout){
+			timeout = setTimeout(()=>{
+				timeout = null;
+				fn.apply(self,args);
+			},wait)
+		} 
+	}
+}
+
+function throttle(fn,wait){
+	var previous = 0;
+	return function(){
+		var content = this;
+		var args = arguments;
+		var now = Date.now();
+		if(now - previous > wait){
+			previous = now;
+			fn.apply(content,args);
+		}
+	}
+}
+
+
+// 数组的扁平化
+
+var A = new Person(name,age,job);
+
+var obj = new Object();
+var res = Person.call(obj, name,age,job);
+res._proto_ = Person.prototype;
+
+return res==null?res:obj

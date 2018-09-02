@@ -728,4 +728,129 @@ p.then(function(){
 
 ##### 14.8 Promise.reject()
 
-Promise.reject(reason) 方法也会返回一个新的 Promise 实例，状态位 
+Promise.reject(reason) 方法也会返回一个新的 Promise 实例，状态为 Rejected
+
+```javascript
+var p = Promise.reject('出错了');
+// 等同于
+var p = new Promise((resolve,reject)=>reject('出错了'))
+
+p.then(null,function(s){
+    console.log(s); // 出错了
+});
+```
+
+**注意**：Promise.reject() 方法的参数会原封不动地作为 reject 的理由变成后续方法的参数。这一点与 Promise.resolve 方法不一致
+
+```javascript
+const thenable = {
+    then(resolve,reject){
+        reject('出错了');
+    }
+};
+
+Promise.reject(thenable)
+    .catch(e => {
+    console.log(e === thenable) // true;
+})
+```
+
+上面的代码中，Promise.reject 方法的参数是一个 thenable 对象，执行以后，后面 catch 方法的参数不是 reject 抛出的 “出错了” 这个字符串，而是 thenable 对象。
+
+####第 15 章 Iterator 和 for...of 循环
+
+##### 15.1 Iterator（遍历器）的概念
+
+遍历器是一种借口，为各种不同的数据结构提供统一的访问机制。任何数据结构，只要部署 Iterator 借口，就可以完成遍历操作，即依次处理该数据结构的所有成员。
+
+Iterator 的作用主要有 3 个：一是为各种数据结构提供一个统一的，简便的访问接口；二是使得数据结构的成员能够按某种次序排列；三是 ES6 创造了一种新的遍历命令——for ... of 循环
+
+Iterator 遍历的过程如下：
+
+1. 创建一个指针对象，指向当前数据结构的起始位置。也就是说，遍历器对象本质上就是一个指针对象。
+2. 第一次调用指针对象的 next 方法，可以将指针指向数据结构的第一个成员。
+3. 第二次调用指针对象的 next 方法，指针就指向数据结构的第二个成员。
+4. 不断调用指针对象的 next 方法，直到它指向数据结构的结束位置。
+
+每次调用 next 方法都会返回数据结构的当前成员的信息，就是一个包括 value 和 done 两个属性的对象。value 是当前成员的值，done 表示循环是否结束。
+
+下面是一个模拟 next 方法返回值的例子
+
+```javascript
+var it = makeIterator(['a','b']);
+
+it.next(); // {value:'a',done:false}
+it.next(); // {value:'b',done:false}
+it.next(); // {value:undefined,done:true}
+
+function makeIterator(array){
+    var nextIndex = 0;
+    return {
+        next:function(){
+            return nextIndex < array.length ?
+            {value:array[nextIndex++],done:false}:
+            {value:undefined,done:true};
+        }
+    }
+}
+```
+
+##### 15.2 默认 Iterator 接口
+
+原生具有 Iterator 接口的数据结构如下
+
+* Array
+* Map
+* Set
+* String
+* TypedArray
+* 函数的 arguments 对象
+* NodeList 对象
+
+下面的例子是数组的 Symbol.iterator 属性
+
+```javascript
+let arr = [1,2,3];
+let iter = arr[Symbol.iterator]();
+
+iter.next(); // {value:1,done:false}
+iter.next(); // {value:2,done:false}
+iter.next(); // {value:3,done:false}
+iter.next(); // {value:undefined,done:true}
+```
+
+
+
+#### 第 16 章 Generator 函数
+
+##### 16.1 简介
+
+###### 16.1.1 基本概念
+
+从语法上可以把它理解为一个状态机，里面封装了多个内部状态
+
+执行 Generator 函数会返回一个遍历器对象。也就是说，Generator 函数除了是状态机，还是一个遍历器对象生成函数。返回的遍历器对象可以依次遍历 Generator 函数内部的每一个状态
+
+形式上，Generator 函数就是一个普通函数，有两个特征：一是 function 命令与函数名之间有一个星号；而是函数体内使用 yield 语句定义不同的内部状态
+
+```javascript
+function*　helloWorldGenerator(){
+    yield 'hellon';
+    yield 'world';
+    return 'ending';
+}
+
+var hw = helloWorldGenerator();
+
+hw.next(); // {value:'hello',done:false}
+hw.next(); // {value:'world',done:false}
+hw.next(); // {value:'ending',done:false}
+hw.next(); // {value:'undefined',done:true}
+```
+
+上面的代码定义了一个 Generator 函数——helloWorldGenerator，它内部有两个 yield 语句 “hello” 和 “world”，即该函数有三个状态，hello，world 和 return 语句。
+
+Generator 函数调用和普通函数一样，区别是调用后并不执行，返回的是一个指向内部状态的指针对象
+
+下一步，调用 next 方法，使得指针移向下一个状态。即每次调用 next 方法，内部指针就从函数头部或上一次停下来的地方执行，直到遇到下一条 yield 语句（或 return 语句）。换言之， yield 语句是暂停执行的标记，而 next 方法可以恢复执行。
+
