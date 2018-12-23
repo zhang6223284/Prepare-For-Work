@@ -2,7 +2,8 @@
 
 var arr = 'i love you';
 
-var res = arr.split('').reduce((pre,cur) => (pre[cur]++ || (pre[cur] = 1),pre),{});
+var res = arr.split('').reduce((pre,cur) => (pre[cur]++ || (pre[cur] = 1),pre),{}); // 这里主要是用了逗号和 reduce 的第二个参数
+
 
 console.log(res);
 

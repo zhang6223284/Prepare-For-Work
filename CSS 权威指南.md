@@ -53,7 +53,7 @@ give || me || liberty
 
 
 
-#####第 2 章 选择器
+##### 第 2 章 选择器
 
 * 规则结构
 
@@ -201,12 +201,11 @@ give || me || liberty
     
     /* 设置之前和之后的样式 */
     /* 在 h2 元素之前插入文本 }} */
-    h2:before {context: "}}"; color: silver;}
+    h2::before {context: "}}"; color: silver;}
     /* 在 body 元素之后插入文本 */
-    body:after {context:" The End. ";}
+    body::after {context:" The End. ";}
     ```
 
-    
 
 ##### 第 3 章 结构和层叠
 

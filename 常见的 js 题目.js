@@ -154,7 +154,6 @@ var node = {
     id: 0,
     value: undefined
 }
-
 // 思路，遍历数组，
 function fn(data,pid){
 	var result = [];
@@ -170,22 +169,6 @@ function fn(data,pid){
 		}
 	}
 	return result
-}
-
-
-
-function fn(data,pid){
-	var result = [];
-	var temp;
-	data.forEach(ele=>{
-		if(ele.parentId === pid){
-			var obj = {'id':ele.id,'value':ele.value};
-			temp = fn(data, ele.id);
-			if(temp.length>0) obj.children = temp;
-			result.push(obj)
-		}
-	})
-	return result;
 }
 
 // 4 手动实现一个 compose 函数
@@ -206,22 +189,7 @@ function func3 (ctx, next) {
   console.log(ctx.index);
 }
  
-
-
-function compose(arr){
-	return function(ctx){
-		[...arr].reverse().reduce((func,item)=>{
-			return function(ctx){
-				item(ctx,function(){
-					func(ctx);
-				})
-			}
-		})(ctx)
-	}
-}
-
-
-
+compose(arr)({index: 0}); 
 // out: 2
 const compose = (arr) => {
   return function(ctx) {
@@ -235,15 +203,135 @@ const compose = (arr) => {
   }
 }
 
-// 防抖
-function debounce(func,wait){
-	var timeout;
-	return ()=>{
-		var self = this;
-		var args = arguments;
-		if(timeout) clearTimeout(timeout);
-		timeout = setTimeout(()=>{
-			func.apply(self,arguments);
-		},wait)
+// 防抖 立即执行版
+function debounce(func,wait) {
+	    var timeout;
+
+	    return function () {
+	        var context = this;
+	        var args = arguments;
+
+	        if (timeout) clearTimeout(timeout);
+
+	        var callNow = !timeout;
+	        timeout = setTimeout(function(){
+	            timeout = null;
+	        }, wait)
+
+	        if (callNow) func.apply(context, args)
+	    }
+	}
+
+// before 函数
+Function.prototype.before = function(beforefn){
+	var self = this;
+	return function(){
+		beforefn.apply(this,arguments);
+		return self.apply(this,arguments);
 	}
 }
+
+// after 函数
+Function.prototype.after = function(afterfn){
+	var self = this;
+	return function(){
+		var res = self.apply(this,arguments);
+		afterfn.apply(this,arguments);
+		return res;
+	}
+}
+
+function deepClone(obj,objNew){
+	objNew = objNew||{};
+	for(let key in obj){
+		if(typeof key == 'object'){
+			if(obj[key] instanceof Object){
+				objNew[key] = {};
+			}else if(Array.isArray(obj[key])){
+				objNew[key] = [];				
+			}
+			deepClone(obj[key],objNew[key]);
+		}else{
+			objNew[key] = obj[key];
+		}
+	}
+	return objNew;
+}
+
+
+function debounce(fn,wait){
+	var timeout;
+	return function(){
+		var context = this;
+		var args = arguments;
+		if(timeout) clearTimeout(timeout);
+		timeout = setTimeout(function() {
+			fn.apply(context,args);
+		}, wait);
+	}
+}
+
+function throttle(fn,wait){
+	var timeout;
+	return function(){
+		var context = this;
+		var args = arguments;
+		if(!timeout){
+			timeout = setTimeout(function(){
+				timeout = null;
+				fn.apply(context,args);
+			},wait)
+		}
+	}
+}
+
+
+function throttle(fn,wait){
+	var pre = 0;
+	return function(){
+		var context = this;
+		var agrs = arguments;
+		var now = Date.now();
+		if(now - pre > wait){
+			fn.apply(context,args);
+			pre = now;
+		}
+	}
+}
+
+// apply，call，bind
+// 深拷贝
+// 防抖节流
+// compose
+// 数组转化对象
+// once,memoized,reduce,curry,partial,compose,pipe,maybe,either
+function add(a,b){
+	return a+b;
+}
+
+var MyModules = (function Manager(){
+	var modules = {};
+	function define(name, deps, impl){
+		this.a = 2;
+		for(var i = 0; i<deps.length; i++){
+			deps[i] = modules[deps[i]]
+		}
+		console.log(this.a);
+		console.log(impl.a)
+		modules[name] = impl.apply(impl, deps);
+	}
+	return {
+		define: define
+	}
+})()
+
+MyModules.define('bar',[],function(){
+	this.a = 1;
+	function hello(who){
+		this.a = 1;
+		return "Let me introduce: " + who  ;
+	}
+	return {
+		hello: hello,
+	};
+});

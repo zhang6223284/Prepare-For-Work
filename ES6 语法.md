@@ -1,6 +1,6 @@
 [TOC]
 
-###ES6 语法
+### ES6 语法
 
 
 
@@ -443,7 +443,7 @@ loadImg.then(res=>{
 var getJSON = function(url){
     var promise = new Promise((resolve,reject)=>{
         var xhr = new XMLHttpRequest();
-        xhr.open('get',url);
+        xhr.open('get',url,false);
         xhr.onreadystatechange = handler;
         xhr.responseType = 'JSON';
         xhr.setRequestHeader('Accept','application/json');
@@ -514,7 +514,7 @@ new Promise((resolve,reject)=>{
 })
 ```
 
-#####14.3 then
+##### 14.3 then
 
 Promise 实例具有 then 方法，是定义在 Promise.prototype 上的。它的作用是为 Promise 实例添加状态改变时的回调函数。then 方法的第一个参数是 Resolved 状态的回调函数，第二个参数（可选）是 Rejected 状态的回调函数（自测如果有这个的话，就不会触发 catch 函数了）
 
@@ -676,7 +676,7 @@ new Promise(resolve => resolve('foo'));
 
 Promise.resolve 方法的参数分成以下四种情况
 
-######参数是一个 Promise 实例
+###### 参数是一个 Promise 实例
 
 如果参数是一个 Promise 实例，那么 Promise.resolve 将不做任何修改，原封不动的返回这个实例
 
@@ -757,7 +757,7 @@ Promise.reject(thenable)
 
 上面的代码中，Promise.reject 方法的参数是一个 thenable 对象，执行以后，后面 catch 方法的参数不是 reject 抛出的 “出错了” 这个字符串，而是 thenable 对象。
 
-####第 15 章 Iterator 和 for...of 循环
+#### 第 15 章 Iterator 和 for...of 循环
 
 ##### 15.1 Iterator（遍历器）的概念
 
