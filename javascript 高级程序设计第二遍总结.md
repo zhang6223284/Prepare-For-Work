@@ -19,7 +19,7 @@
   var message;	// undefined
   ```
 
-* 5 种简单的数据类型 Undefined，Null，Number，String，Boolean
+* 6 种简单的数据类型 Undefined，Null，Number，String，Boolean，Symbol
 
 * 1 种复杂的数据类型 Object
 
@@ -36,6 +36,8 @@
   > "object" 这个值是对象或 null
   >
   > "function" 这个值是函数
+  >
+  > "symbol" 这个值是 symbol
 
   ```javascript
   undefined == null //true 

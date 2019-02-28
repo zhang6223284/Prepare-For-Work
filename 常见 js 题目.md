@@ -399,3 +399,67 @@ a ^ b//判断a、b符号是否相同，如果结果>0则相同，否则不同
 
 ```
 
+
+
+#### 10. 深拷贝
+
+```javascript
+// 1、json.parse(json.stringify(obj))
+// 会忽略 undefined，function，symbol 及不能解决循环引用
+let a = {
+  age: 1,
+  jobs: {
+    first: 'FE'
+  }
+}
+let b = JSON.parse(JSON.stringify(a))
+a.jobs.first = 'native'
+console.log(b.jobs.first) // FE
+
+// 2、MessageChannel
+function structuralClone(obj) {
+  return new Promise(resolve => {
+    const { port1, port2 } = new MessageChannel()
+    port2.onmessage = ev => resolve(ev.data)
+    port1.postMessage(obj)
+  })
+}
+
+var obj = {
+  a: 1,
+  b: {
+    c: 2
+  }
+}
+
+obj.b.d = obj.b
+
+// 注意该方法是异步的
+// 可以处理 undefined 和循环引用对象
+const test = async () => {
+  const clone = await structuralClone(obj)
+  console.log(clone)
+}
+test()
+
+// 3、自己的简易实现，真正使用用 loadash 库
+function deepClone(obj,objNew){
+	objNew = objNew || {};
+	for(let key in obj){
+		if(typeof key == 'object'){
+			if(obj[key] instanceof Object){
+				objNew[key] = {};
+			}else if(Array.isArray(obj[key])){
+				objNew[key] = [];				
+			}
+			deepClone(obj[key],objNew[key]);
+		}else{
+			objNew[key] = obj[key];
+		}
+	}
+	return objNew;
+}
+
+
+```
+

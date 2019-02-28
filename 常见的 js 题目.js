@@ -1,34 +1,53 @@
 // 1 判断是否存在循环引用
 var obj={
-	a:{
-		b:{
-			c:obj
-		}
-	},
-	l:4
+	a: 1,
+	b: 2
 }
+obj.c = obj
 fn(obj)
 // JSON.stringify(obj) 会报错
 // 思路 遍历对象，将 KEY 加入到 arr 中，如果 key 在 arr 中已经存在，则证明存在循环引用
-var arr = [];
-function fn(obj){
-	for(item in obj){
-		if(arr.indexOf(item)!=-1){
-			return false;
-		}else{
-			arr.push(item);
-			console.log(arr);
-			if(obj[item] instanceof Object){
-				if(!fn(obj[item])){
-					return false;
+function fn(obj, arr) {
+  const cache = arr || [] 
+  if(typeof obj === 'object' && !cache.includes(obj) ) {
+    cache.push(obj)
+  } else {
+    return 
+  }
+  try{
+    Object.values(obj).forEach( val => {
+      if(cache.includes(val)) {
+        throw new Error()
+      } else {
+        if(typeof val === 'obj') {
+      		cache.push(obj)
+          fn(val, cache)
+        }
+      }
+    })
+  }catch(e) {
+    return false
+  }
+  return true
+}
+
+function fn(obj, arr) {
+	const cache = arr || []
+	if(typeof obj !== 'object') return true
+	for(let key in obj) {
+		if(cache.includes(obj[key])) {
+			return false
+		} else {
+			if(typeof obj[key] === 'object') {
+				cache.push(obj[key])
+				if(!fn(obj[key], cache)) {
+					return false
 				}
 			}
 		}
-
 	}
-	return true;
+	return true
 }
-
 // 2 数组去重
 
 var arr = [6,2,2,3,2,8,4]
@@ -221,6 +240,58 @@ function debounce(func,wait) {
 	        if (callNow) func.apply(context, args)
 	    }
 	}
+
+// 简易 promise
+const PENDING = 'pending'
+const RESOLVED = 'resolved'
+const REJECTED = 'rejected'
+
+function MyPromise(fn) {
+	const that = this
+	that.state = PENDING
+	that.value = null
+	that.resolvedCallbacks = []
+	that.rejectedCallbacks = []
+
+	function resolve(value) {
+		if(that.state === PENDING) {
+			that.value = value
+			that.state = RESOLVED
+			that.resolvedCallbacks.map( cb => cb(that.value))
+		}
+	}
+
+	function reject(value) {
+		if(that.state === PENDING) {
+			that.value = value
+			that.state = REJECTED
+			that.rejectedCallbacks.map( cb => cb(that.value))
+		}
+	}
+
+	try {
+		fn(resolve, reject)
+	} catch (e) {
+		reject(e)
+	}
+}
+
+MyPromise.prototype.then = function(onFulfilled, onRejected) {
+	const that = this
+	onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : v => v
+	onRejected = typeof onRejected === 'function'? onRejected : r => { throw r }
+
+	if (that.state === PENDING) {
+    that.resolvedCallbacks.push(onFulfilled)
+    that.rejectedCallbacks.push(onRejected)
+  }
+  if (that.state === RESOLVED) {
+    onFulfilled(that.value)
+  }
+  if (that.state === REJECTED) {
+    onRejected(that.value)
+  }
+}
 
 // before 函数
 Function.prototype.before = function(beforefn){
